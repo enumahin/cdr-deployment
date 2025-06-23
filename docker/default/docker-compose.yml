@@ -1,0 +1,106 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: patient-db
+    restart: always
+    ports:
+      - "3316:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${ALIEN_DB_PW}
+      MYSQL_USER: alienworkspace
+      MYSQL_PASSWORD: ${ALIEN_DB_PW}
+    volumes:
+      - ./init/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 5s
+      retries: 5
+      timeout: 5s
+    extends:
+      file: common-config.yml
+      service: network-base-config
+
+  cdr-cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cdr-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    extends:
+      file: common-config.yml
+      service: network-base-config
+    environment:
+      - "TUNNEL_TOKEN=${CDR_CONFIGSERVER_TUNNEL_TOKEN}"
+
+  rabbit:
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 10s
+      retries: 10
+      timeout: 5s
+      start_period: 10s
+    extends:
+      file: common-config.yml
+      service: network-base-config
+
+  configserver:
+    image: enumahin/cdr-configserver:0.0.2
+    container_name: configserver
+    ports:
+      - "8071:8071"
+    healthcheck:
+      test: "curl --fail --silent http://localhost:8071/actuator/health/readiness | grep UP || exit 1"
+      interval: 10s
+      retries: 10
+      timeout: 30s
+      start_period: 30s
+    depends_on:
+      rabbit:
+        condition: service_healthy
+    extends:
+      file: common-config.yml
+      service: deployment-base-config
+
+  metadata:
+    image: enumahin/metadata-microservice:0.0.2
+    container_name: metadata-ms
+    ports:
+      - "8010:8010"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/metadata
+      SPRING_APPLICATION_NAME: "metadata"
+    extends:
+      file: common-config.yml
+      service: microservice-base-config
+
+  patient:
+    image: enumahin/patient-microservice:0.0.2
+    container_name: patient-ms
+    ports:
+      - "8030:8030"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/patient
+      SPRING_APPLICATION_NAME: "patient"
+    extends:
+      file: common-config.yml
+      service: microservice-base-config
+
+  demographic:
+    image: enumahin/demographic-microservice:0.0.2
+    container_name: demographic-ms
+    ports:
+      - "8020:8020"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/demographic
+      SPRING_APPLICATION_NAME: "demographic"
+    extends:
+      file: common-config.yml
+      service: microservice-base-config
+
+networks:
+  cdr-network:
+    driver: bridge

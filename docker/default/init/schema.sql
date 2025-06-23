@@ -1,0 +1,13 @@
+CREATE DATABASE IF NOT EXISTS demographic;
+CREATE DATABASE IF NOT EXISTS metadata;
+CREATE DATABASE IF NOT EXISTS patient;
+CREATE DATABASE IF NOT EXISTS test_db;
+
+GRANT ALL ON *.* TO 'alienworkspace'@'%';
+
+CREATE USER 'tester'@'%' IDENTIFIED BY 'testing';
+
+GRANT ALL ON test_db.* TO 'tester'@'%';
+
+FLUSH PRIVILEGES;
+

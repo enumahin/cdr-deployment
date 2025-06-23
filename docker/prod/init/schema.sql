@@ -1,0 +1,5 @@
+CREATE DATABASE IF NOT EXISTS demographic;
+CREATE DATABASE IF NOT EXISTS metadata;
+CREATE DATABASE IF NOT EXISTS patient;
+
+GRANT ALL ON *.* TO 'alienworkspace'@'%';

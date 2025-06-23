@@ -1,0 +1,42 @@
+services:
+  network-base-config:
+    networks:
+      - cdr-network
+
+  resource-base-config:
+    extends:
+      service: network-base-config
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 700m
+
+  deployment-base-config:
+    extends:
+      service: network-base-config
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbit
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 700m
+
+  microservice-base-config:
+    extends:
+      service: deployment-base-config
+    environment:
+      - SPRING_DATASOURCE_USERNAME=alienworkspace
+      - SPRING_DATASOURCE_PASSWORD=${ALIEN_DB_PW}
+      - SPRING_CONFIG_IMPORT=configserver:http://configserver:8071/
+      - SPRING_PROFILES_ACTIVE=default
+    depends_on:
+      db:
+        condition: service_healthy
+      configserver:
+        condition: service_healthy
+
