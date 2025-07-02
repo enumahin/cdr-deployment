@@ -18,7 +18,7 @@ services:
     extends:
       service: configserver-base-config
     environment:
-      - SPRING_PROFILES_ACTIVE=default
+      - SPRING_PROFILES_ACTIVE=qa
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eurekaserver:8761/eureka
       - EUREKA_CLIENT_REGISTERWITHEUREKA=true
       - EUREKA_CLIENT_FETCHREGISTRY=true
@@ -45,7 +45,7 @@ services:
       - SPRING_DATASOURCE_USERNAME=alienworkspace
       - SPRING_DATASOURCE_PASSWORD=${ALIEN_DB_PW}
       - SPRING_CONFIG_IMPORT=configserver:http://configserver:8071/
-      - SPRING_PROFILES_ACTIVE=default
+      - SPRING_PROFILES_ACTIVE=qa
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eurekaserver:8761/eureka
     depends_on:
       db:
