@@ -12,10 +12,10 @@ services:
     volumes:
       - ./init/schema.sql:/docker-entrypoint-initdb.d/schema.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$MYSQL_ROOT_PASSWORD"]
       interval: 5s
       retries: 15
-      timeout: 5s
+      timeout: 15s
     extends:
       file: common-config.yml
       service: network-base-config
