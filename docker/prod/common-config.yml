@@ -52,8 +52,8 @@ services:
       - OTEL_LOGS_EXPORTER=none
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
     depends_on:
-      db:
-        condition: service_healthy
+#      db:
+#        condition: service_healthy
       configserver:
         condition: service_healthy
       eurekaserver:
