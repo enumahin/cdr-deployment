@@ -1,0 +1,29 @@
+global:
+    scrape_interval:     5s # By default, scrape targets to fetch metrics every 5 seconds.
+    evaluation_interval: 5s # By default, all targets are evaluated by updating metrics in the dashboard every 5 seconds.
+
+scrape_configs:
+  - job_name: 'metadata'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['metadata:8010']
+  - job_name: 'demographic'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['demographic:8020']
+  - job_name: 'patient'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['patient:8030']
+  - job_name: 'gatewayserver'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['gatewayserver:9191']
+  - job_name: 'eurekaserver'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['eurekaserver:8761']
+  - job_name: 'configserver'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['configserver:8071']
