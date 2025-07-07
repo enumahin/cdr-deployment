@@ -20,6 +20,24 @@ services:
       file: common-config.yml
       service: network-base-config
 
+  auth_db:
+    image: postgres:15
+    container_name: auth-db
+    environment:
+      POSTGRES_DB: cdr_auth
+      POSTGRES_USER: alienworkspace
+      POSTGRES_PASSWORD: ${ALIEN_DB_PW}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d cdr_auth || exit 1" ]
+      interval: 10s
+      timeout: 15s
+      retries: 30
+    networks:
+      - cdr-network
+
   cdr-cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cdr-cloudflared
@@ -345,13 +363,35 @@ services:
       - OTEL_LOGS_EXPORTER=none
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
       - OTEL_SERVICE_NAME=gatewayserver
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWT-SET-URI=http://authserver:8080/realms/master/protocol/openid-connect/certs
 
+  authserver:
+    image: quay.io/keycloak/keycloak:26.3.0
+    command: start-dev
+    container_name: authserver
+    ports:
+      - "7080:8080"
+    environment:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin
+      - KC_DB=postgres
+      - KC_DB_URL_HOST=auth_db
+      - KC_DB_URL_DATABASE=cdr_auth
+      - KC_DB_USERNAME=alienworkspace
+      - KC_DB_PASSWORD=${ALIEN_DB_PW}
+      - KC_HOSTNAME=localhost
+      - KC_PROXY=edge
+    depends_on:
+      auth_db:
+        condition: service_healthy
+    networks:
+      - cdr-network
 
   metadata:
     image: enumahin/metadata-microservice:0.0.4.SNAPSHOT
     container_name: metadata-ms
-    ports:
-      - "8010:8010"
+    #    ports:
+    #      - "8010:8010"
     healthcheck:
       test: "curl --fail --silent http://localhost:8010/actuator/health/readiness | grep UP || exit 1"
       interval: 20s
@@ -369,8 +409,8 @@ services:
   patient:
     image: enumahin/patient-microservice:0.0.4.SNAPSHOT
     container_name: patient-ms
-    ports:
-      - "8030:8030"
+    #    ports:
+    #      - "8030:8030"
     healthcheck:
       test: "curl --fail --silent http://localhost:8030/actuator/health/readiness | grep UP || exit 1"
       interval: 20s
@@ -388,8 +428,8 @@ services:
   demographic:
     image: enumahin/demographic-microservice:0.0.4.SNAPSHOT
     container_name: demographic-ms
-    ports:
-      - "8020:8020"
+    #    ports:
+    #      - "8020:8020"
     healthcheck:
       test: "curl --fail --silent http://localhost:8020/actuator/health/readiness | grep UP || exit 1"
       interval: 10s
@@ -407,3 +447,6 @@ services:
 networks:
   cdr-network:
     driver: bridge
+
+volumes:
+  postgres_data:
