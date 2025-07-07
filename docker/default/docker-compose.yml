@@ -12,10 +12,10 @@ services:
     volumes:
       - ./init/schema.sql:/docker-entrypoint-initdb.d/schema.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$MYSQL_ROOT_PASSWORD"]
       interval: 5s
-      retries: 5
-      timeout: 5s
+      retries: 15
+      timeout: 15s
     extends:
       file: common-config.yml
       service: network-base-config
@@ -72,12 +72,12 @@ services:
       retries: 10
       timeout: 30s
       start_period: 30s
-    depends_on:
-      rabbit:
-        condition: service_healthy
     extends:
       file: common-config.yml
       service: rabbit-network-base-config
+    environment:
+      - SPRING_APPLICATION_NAME=configserver
+      - OTEL_SERVICE_NAME=configserver
 
   eurekaserver:
     image: enumahin/cdr-service-discovery:0.0.1-SNAPSHOT
@@ -98,6 +98,7 @@ services:
       service: configserver-base-config
     environment:
       - SPRING_APPLICATION_NAME=eurekaserver
+      - OTEL_SERVICE_NAME=eurekaserver
 
   read:
     image: grafana/loki:latest
@@ -142,11 +143,11 @@ services:
   alloy:
     image: grafana/alloy:latest
     volumes:
-      - ./loki/alloy-local-config.yaml:/etc/alloy/config.alloy:ro
+      - ./loki/alloy-local-config.yaml:/etc/alloy/config.alloy
       - /var/run/docker.sock:/var/run/docker.sock
     command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
     ports:
-      - 12345:12345
+      - "12345:12345"
     depends_on:
       - gateway
     networks:
@@ -220,6 +221,19 @@ services:
       retries: 5
     networks:
       - cdr-network
+
+  tempo:
+    image: grafana/tempo
+    container_name: tempo
+    ports:
+      - "3110:3100"
+      - "4318:4318"
+    command: "-config.file=/etc/tempo/config.yaml"
+    volumes:
+      - ./tempo/tempo.yml:/etc/tempo/config.yaml
+    extends:
+      file: common-config.yml
+      service: network-base-config
 
   backend:
     image: grafana/loki:latest
@@ -322,11 +336,16 @@ services:
       service: eureka-configserver-config
     environment:
       - SPRING_APPLICATION_NAME=gatewayserver
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eurekaserver:8761/eureka
       - SPRING_DATA_REDIS_CONNECTION-TIMEOUT=2s
       - SPRING_DATA_REDIS_HOST=redis
       - SPRING_DATA_REDIS_PORT=6379
       - SPRING_DATA_REDIS_TIMEOUT=1s
+      - JAVA_TOOL_OPTIONS="-javaagent:/app/libs/opentelemetry-javaagent-2.8.0.jar"
+      - OTEL_METRICS_EXPORTER=none
+      - OTEL_LOGS_EXPORTER=none
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
+      - OTEL_SERVICE_NAME=gatewayserver
+
 
   metadata:
     image: enumahin/metadata-microservice:0.0.4.SNAPSHOT
@@ -342,6 +361,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/metadata
       SPRING_APPLICATION_NAME: "metadata"
+      OTEL_SERVICE_NAME: metadata
     extends:
       file: common-config.yml
       service: microservice-base-config
@@ -360,6 +380,7 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/patient
       SPRING_APPLICATION_NAME: "patient"
+      OTEL_SERVICE_NAME: patient
     extends:
       file: common-config.yml
       service: microservice-base-config
@@ -371,13 +392,14 @@ services:
       - "8020:8020"
     healthcheck:
       test: "curl --fail --silent http://localhost:8020/actuator/health/readiness | grep UP || exit 1"
-      interval: 20s
-      retries: 10
+      interval: 10s
+      retries: 20
       timeout: 50s
       start_period: 30s
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/demographic
       SPRING_APPLICATION_NAME: "demographic"
+      OTEL_SERVICE_NAME: demographic
     extends:
       file: common-config.yml
       service: microservice-base-config
