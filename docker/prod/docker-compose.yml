@@ -379,7 +379,7 @@ services:
       - KC_DB_URL_DATABASE=cdr_auth
       - KC_DB_USERNAME=alienworkspace
       - KC_DB_PASSWORD=${ALIEN_DB_PW}
-      - KC_HOSTNAME=localhost
+      - KC_HOSTNAME=192.168.0.82
       - KC_PROXY=edge
     depends_on:
       auth_db:
