@@ -363,7 +363,7 @@ services:
       - OTEL_LOGS_EXPORTER=none
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4318
       - OTEL_SERVICE_NAME=gatewayserver
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWT-SET-URI=http://authserver:8080/realms/master/protocol/openid-connect/certs
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK-SET-URI=http://authserver:8080/realms/master/protocol/openid-connect/certs
 
   authserver:
     image: quay.io/keycloak/keycloak:26.3.0
